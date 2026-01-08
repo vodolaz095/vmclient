@@ -1,0 +1,26 @@
+version: "3.11"
+
+volumes:
+  victoria:
+  jaeger_temp:
+
+services:
+  victoria:
+    image: mirror.gcr.io/victoriametrics/victoria-metrics:v1.107.0
+    ports:
+      - "8428:8428"
+    volumes:
+      - victoria:/victoria-metrics-data
+
+  # сборщик метрик для open-telemetry - WebUI - http://localhost:16686
+  # Документация: https://opentelemetry.io/docs/instrumentation/go/getting-started/
+  # Получение трейсов в COROOT: https://docs.coroot.com/tracing/opentelemetry-go/
+  # Образ: https://hub.docker.com/r/jaegertracing/all-in-one
+  # пример в Go - https://github.com/open-telemetry/opentelemetry-go/blob/v1.10.0/example/jaeger/main.go
+  jaeger:
+    image: mirror.gcr.io/jaegertracing/all-in-one:1.68.0
+    volumes:
+      - jaeger_temp:/tmp
+    ports:
+      - "16686:16686/tcp" # webui is listening
+      - "4318:4318/tcp" # accepting spans in OTLP format over http
