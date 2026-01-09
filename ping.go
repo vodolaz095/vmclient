@@ -6,13 +6,21 @@ import (
 	"io"
 	"net/http"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // Ping checks if database accepts connections
-func (c *Client) Ping(ctx context.Context) (err error) {
-	span := trace.SpanFromContext(ctx)
+func (c *Client) Ping(initialCtx context.Context) (err error) {
+	ctx, span := otel.GetTracerProvider().Tracer("vmclient").Start(initialCtx, "ping",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(semconv.DBClientConnectionPoolName(c.endpoint),
+			semconv.DBSystemNameKey.String("Victoria Metrics")),
+	)
+	defer span.End()
+
 	resp, err := c.do(ctx, "ping", doParams{})
 	if err != nil {
 		return err

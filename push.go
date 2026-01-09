@@ -8,6 +8,7 @@ import (
 	"github.com/VictoriaMetrics/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -19,7 +20,9 @@ func (c *Client) Push(initialCtx context.Context, set *metrics.Set) error {
 		trace.WithAttributes(
 			semconv.DBClientConnectionPoolName(c.endpoint),
 			semconv.DBSystemNameKey.String("Victoria Metrics"),
+			attribute.String("extra_labels", c.extraLabels),
 			attribute.StringSlice("metric.names", set.ListMetricNames()),
+			semconv.HTTPRequestMethodPost,
 		),
 	)
 	defer span.End()
@@ -30,15 +33,23 @@ func (c *Client) Push(initialCtx context.Context, set *metrics.Set) error {
 	}
 	var i int
 	headers := make([]string, len(c.headers))
-	for k := range c.headers {
-		headers[i] = k + ": " + c.headers[k]
+	for k, v := range c.headers {
+		headers[i] = k + ": " + v
+		span.SetAttributes(semconv.HTTPRequestHeader(k, v))
 		i++
 	}
-	return set.PushMetrics(ctx, endpoint, &metrics.PushOptions{
+	err = set.PushMetrics(ctx, endpoint, &metrics.PushOptions{
 		ExtraLabels: c.extraLabels,
 		Headers:     headers,
 		Method:      http.MethodPost,
 	})
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		return err
+	}
+	span.SetStatus(codes.Ok, "metrics are pushed")
+	return nil
 }
 
 // PushGauge pushes metrics gauge

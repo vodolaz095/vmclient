@@ -129,7 +129,7 @@ func TestClientAgainstExampleOrg(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, properOne.Code, "wrong status code")
 }
 
-func TestAgainstHttpMock(tt *testing.T) {
+func TestAgainstHttpMockOK(tt *testing.T) {
 	mockTransport := httpmock.NewMockTransport()
 	mockTransport.RegisterResponder(http.MethodGet, DefaultEndpoint+"/-/healthy",
 		httpmock.NewStringResponder(http.StatusOK, "200th status code is enough to trick vm client"))
@@ -208,5 +208,53 @@ func TestAgainstHttpMock(tt *testing.T) {
 			assert.Contains(t, instants[i].Labels, "when")
 			t.Logf("Data received: %v - %s = %v", i, instants[i].String(), instants[i].Value)
 		}
+	})
+}
+
+func TestAgainstHttpMockFailure(tt *testing.T) {
+	mockTransport := httpmock.NewMockTransport()
+	mockTransport.RegisterResponder(http.MethodGet, DefaultEndpoint+"/-/healthy",
+		httpmock.NewStringResponder(http.StatusOK, "200th status code is enough to trick vm client"))
+	matcherFunc := func(req *http.Request) bool {
+		if req.URL.Query().Get("query") == "" {
+			return false
+		}
+		return `something{job="vmclient",unit="test"}` == req.URL.Query().Get("query")
+	}
+	matcher := httpmock.NewMatcher("validateSingleQuery", matcherFunc)
+	singleQueryRegex, err := regexp.Compile(`\/prometheus\/api\/v1\/query`)
+	if err != nil {
+		tt.Fatal(err)
+	}
+	mockTransport.RegisterRegexpMatcherResponder(http.MethodGet, singleQueryRegex, matcher,
+		httpmock.NewStringResponder(http.StatusInternalServerError, "в этой записной книжке все уже умерли"))
+
+	client, errC := New(tt.Context(), Config{
+		Address:    DefaultEndpoint,
+		HttpClient: &http.Client{Transport: mockTransport},
+	})
+	if errC != nil {
+		tt.Errorf("error creating client: %s", errC)
+		return
+	}
+
+	tt.Run("ping", func(t *testing.T) {
+		errP := client.Ping(t.Context())
+		if errP != nil {
+			t.Errorf("error pinging: %s", errP)
+		}
+		return
+	})
+	tt.Run("instant fail", func(t *testing.T) {
+		instants, errI := client.Instant(t.Context(), `something{job="vmclient",unit="test"}`, time.Now(), DefaultStep)
+		assert.Empty(t, instants)
+		assert.Error(t, errI)
+		assert.ErrorIs(t, errI, ErrUnexpectedResponse, "wrong error")
+		var properOne Err
+		assert.ErrorAs(t, errI, &properOne, "wrong error")
+		assert.Equal(t, http.StatusInternalServerError, properOne.Code)
+		assert.Equal(t, ErrUnexpectedResponse, properOne.Err)
+		assert.Equal(t, "unexpected response", properOne.Message)
+		assert.Equal(t, "в этой записной книжке все уже умерли", properOne.Response)
 	})
 }

@@ -7,7 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -50,9 +52,16 @@ type rangeRawResponse struct {
 }
 
 // Range makes range query as described here https://docs.victoriametrics.com/victoriametrics/keyconcepts/#range-query
-func (c *Client) Range(ctx context.Context, query string, start, end time.Time, step time.Duration) (data []Range, err error) {
+func (c *Client) Range(initialCtx context.Context, query string, start, end time.Time, step time.Duration) (data []Range, err error) {
+	ctx, span := otel.GetTracerProvider().Tracer("vmclient").Start(initialCtx, "range",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(semconv.DBClientConnectionPoolName(c.endpoint),
+			semconv.DBSystemNameKey.String("Victoria Metrics")),
+	)
+	defer span.End()
+
 	var result Result
-	span := trace.SpanFromContext(ctx)
+
 	resp, err := c.do(ctx, "range", doParams{query: query, start: start, end: end, step: step})
 	if err != nil {
 		return nil, err
