@@ -4,6 +4,7 @@ go 1.24.11
 
 require (
 	github.com/VictoriaMetrics/metrics v1.40.2
+	github.com/jarcoal/httpmock v1.4.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.64.0
 	go.opentelemetry.io/otel v1.39.0

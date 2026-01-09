@@ -2,6 +2,7 @@ package vmclient
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -24,6 +25,9 @@ func New(ctx context.Context, cfg Config) (vmc *Client, err error) {
 		endpoint:    cfg.Address,
 		headers:     cfg.Headers,
 		extraLabels: cfg.ExtraLabels,
+	}
+	if cfg.Insecure {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	if cfg.HttpClient != nil {
 		vmc.hclient = cfg.HttpClient

@@ -8,4 +8,5 @@ type Config struct {
 	Headers     map[string]string
 	ExtraLabels string
 	HttpClient  *http.Client
+	Insecure    bool
 }
