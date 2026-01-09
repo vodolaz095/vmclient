@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -58,10 +57,9 @@ func (c *Client) Range(ctx context.Context, query string, start, end time.Time, 
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		span.SetStatus(codes.Error, ErrWrongStatus.Error())
-		span.RecordError(ErrWrongStatus)
-		return nil, ErrWrongStatus
+	err = handleErrorResponse(resp, span)
+	if err != nil {
+		return nil, err
 	}
 	span.AddEvent("request performed")
 	var raw rangeRawResponse

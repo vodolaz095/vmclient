@@ -2,6 +2,7 @@ package vmclient
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestClient(tt *testing.T) {
+func TestClientAgainstRealVM(tt *testing.T) {
 	var metricName = fmt.Sprintf("something{job=%q,when=\"%v\",unit=%q}", "vmclient", time.Now().Unix(), "test")
 	client, errC := New(tt.Context(), Config{Address: DefaultEndpoint})
 	if errC != nil {
@@ -38,7 +39,7 @@ func TestClient(tt *testing.T) {
 		t.Logf("Metrics are pushed")
 	})
 
-	tt.Run("instant", func(t *testing.T) {
+	tt.Run("instant ok", func(t *testing.T) {
 		t.Logf("Sleeping for 5 seconds...")
 		time.Sleep(5 * time.Second)
 		instants, err := client.Instant(t.Context(), `something{job="vmclient",unit="test"}`, time.Now(), DefaultStep)
@@ -60,7 +61,19 @@ func TestClient(tt *testing.T) {
 		}
 	})
 
-	tt.Run("range", func(t *testing.T) {
+	tt.Run("instant error", func(t *testing.T) {
+		instants, err := client.Instant(t.Context(), `something{job="vmclient",unit="test}`, time.Now(), DefaultStep)
+		assert.Error(t, err, "error should be thrown")
+		assert.Empty(t, instants, "something is returned for wrong query")
+		assert.ErrorIs(t, err, ErrQueryError, "wrong error returned")
+		var properOne Err
+		assert.ErrorAs(t, err, &properOne, "error is not type-casted")
+		assert.Equal(t, http.StatusUnprocessableEntity, properOne.Code)
+		assert.Contains(t, properOne.Message, "cannot find closing quote")
+		t.Logf("error is %s", properOne.Error())
+	})
+
+	tt.Run("range ok", func(t *testing.T) {
 		t.Logf("Sleeping for 5 seconds...")
 		time.Sleep(5 * time.Second)
 		ranges, err := client.Range(t.Context(), `something{job="vmclient",unit="test"}`, time.Now().Add(-time.Hour), time.Now(), DefaultStep)
@@ -79,10 +92,36 @@ func TestClient(tt *testing.T) {
 			assert.Contains(t, ranges[i].Labels, "when")
 			for j := range ranges[i].Values {
 				t.Logf("For %s values are %v on %s", ranges[i].String(),
-					ranges[i].Values[j].Value,
-					ranges[i].Values[j].Timestamp.Format(time.Stamp),
-				)
+					ranges[i].Values[j].Value, ranges[i].Values[j].Timestamp.Format(time.Stamp))
 			}
 		}
 	})
+
+	tt.Run("range error", func(t *testing.T) {
+		lines, err := client.Range(t.Context(), `something{job="vmclient",unit="test}`, time.Now().Add(-time.Minute), time.Now(), DefaultStep)
+		assert.Error(t, err, "error should be thrown")
+		assert.Empty(t, lines, "something is returned for wrong query")
+		assert.ErrorIs(t, err, ErrQueryError, "wrong error returned")
+		var properOne Err
+		assert.ErrorAs(t, err, &properOne, "error is not type-casted")
+		assert.Equal(t, http.StatusUnprocessableEntity, properOne.Code)
+		assert.Contains(t, properOne.Message, "cannot find closing quote")
+		t.Logf("error is %s", properOne.Error())
+	})
+
+	tt.Run("close", func(t *testing.T) {
+		errClosing := client.Close(t.Context())
+		if errClosing != nil {
+			t.Errorf("error closing: %s", errClosing)
+		}
+	})
+}
+
+func TestClientAgainstExampleOrg(t *testing.T) {
+	_, err := New(t.Context(), Config{Address: "http://example.org"})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrUnexpectedResponse, "wrong error")
+	var properOne Err
+	assert.ErrorAs(t, err, &properOne, "wrong error")
+	assert.Equal(t, http.StatusNotFound, properOne.Code, "wrong status code")
 }

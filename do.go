@@ -105,5 +105,6 @@ func (c *Client) do(initialCtx context.Context, operation string, params doParam
 		span.RecordError(err)
 		return nil, err
 	}
+	span.SetAttributes(semconv.HTTPResponseStatusCode(res.StatusCode))
 	return res, nil
 }

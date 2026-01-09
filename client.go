@@ -14,7 +14,7 @@ type Client struct {
 	extraLabels string
 }
 
-func (c *Client) Close(_ context.Context) (err error) {
+func (c *Client) Close(context.Context) (err error) {
 	c.hclient.CloseIdleConnections()
 	return nil
 }
