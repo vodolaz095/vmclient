@@ -26,15 +26,15 @@ func New(ctx context.Context, cfg Config) (vmc *Client, err error) {
 		headers:     cfg.Headers,
 		extraLabels: cfg.ExtraLabels,
 	}
+	if cfg.Insecure {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	if cfg.HttpClient != nil {
 		vmc.hclient = cfg.HttpClient
 	} else {
 		vmc.hclient = &http.Client{
 			Transport: otelhttp.NewTransport(http.DefaultTransport),
 		}
-	}
-	if cfg.Insecure {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	err = vmc.Ping(ctx)
 	if err != nil {
