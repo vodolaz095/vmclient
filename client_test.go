@@ -26,7 +26,6 @@ func TestClientAgainstRealVM(tt *testing.T) {
 		if err != nil {
 			t.Errorf("error pinging: %s", err)
 		}
-		return
 	})
 
 	tt.Run("push", func(t *testing.T) {
@@ -167,7 +166,7 @@ func TestAgainstHttpMockOK(tt *testing.T) {
 		if req.URL.Query().Get("query") == "" {
 			return false
 		}
-		return `something{job="vmclient",unit="test"}` == req.URL.Query().Get("query")
+		return req.URL.Query().Get("query") == `something{job="vmclient",unit="test"}`
 	}
 	matcher := httpmock.NewMatcher("validateSingleQuery", matcherFunc)
 	singleQueryRegex, err := regexp.Compile(`\/prometheus\/api\/v1\/query`)
@@ -190,7 +189,6 @@ func TestAgainstHttpMockOK(tt *testing.T) {
 		if errP != nil {
 			t.Errorf("error pinging: %s", errP)
 		}
-		return
 	})
 
 	tt.Run("instant ok", func(t *testing.T) {
@@ -219,7 +217,7 @@ func TestAgainstHttpMockFailure(tt *testing.T) {
 		if req.URL.Query().Get("query") == "" {
 			return false
 		}
-		return `something{job="vmclient",unit="test"}` == req.URL.Query().Get("query")
+		return req.URL.Query().Get("query") == `something{job="vmclient",unit="test"}`
 	}
 	matcher := httpmock.NewMatcher("validateSingleQuery", matcherFunc)
 	singleQueryRegex, err := regexp.Compile(`\/prometheus\/api\/v1\/query`)
@@ -243,7 +241,6 @@ func TestAgainstHttpMockFailure(tt *testing.T) {
 		if errP != nil {
 			t.Errorf("error pinging: %s", errP)
 		}
-		return
 	})
 	tt.Run("instant fail", func(t *testing.T) {
 		instants, errI := client.Instant(t.Context(), `something{job="vmclient",unit="test"}`, time.Now(), DefaultStep)

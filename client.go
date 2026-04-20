@@ -32,7 +32,9 @@ func New(ctx context.Context, cfg Config) (vmc *Client, err error) {
 	if cfg.HttpClient != nil {
 		vmc.hclient = cfg.HttpClient
 	} else {
-		vmc.hclient = otelhttp.DefaultClient
+		vmc.hclient = &http.Client{
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
+		}
 	}
 	err = vmc.Ping(ctx)
 	if err != nil {
