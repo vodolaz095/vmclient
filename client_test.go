@@ -255,3 +255,55 @@ func TestAgainstHttpMockFailure(tt *testing.T) {
 		assert.Equal(t, "в этой записной книжке все уже умерли", properOne.Response)
 	})
 }
+
+func TestPushGaugeWithHttpMock(t *testing.T) {
+	mockTransport := httpmock.NewMockTransport()
+	mockTransport.RegisterResponder(http.MethodGet, DefaultEndpoint+"/-/healthy",
+		httpmock.NewStringResponder(http.StatusOK, "200th status code is enough to trick vm client"))
+
+	// Register responder for POST request to push endpoint
+	pushRegex, err := regexp.Compile(`\/api\/v1\/import\/prometheus`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mockTransport.RegisterRegexpResponder(http.MethodPost, pushRegex,
+		httpmock.NewStringResponder(http.StatusNoContent, ""))
+
+	client, err := New(t.Context(), Config{
+		Address:    DefaultEndpoint,
+		HttpClient: &http.Client{Transport: mockTransport},
+	})
+	if err != nil {
+		t.Fatalf("error creating client: %s", err)
+	}
+
+	// Test successful push
+	err = client.PushGauge(t.Context(), "test_gauge{job=\"test\"}", 42.0)
+	assert.NoError(t, err, "PushGauge should not return error on success")
+}
+
+func TestPushCounterWithHttpMock(t *testing.T) {
+	mockTransport := httpmock.NewMockTransport()
+	mockTransport.RegisterResponder(http.MethodGet, DefaultEndpoint+"/-/healthy",
+		httpmock.NewStringResponder(http.StatusOK, "200th status code is enough to trick vm client"))
+
+	// Register responder for POST request to push endpoint
+	pushRegex, err := regexp.Compile(`\/api\/v1\/import\/prometheus`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mockTransport.RegisterRegexpResponder(http.MethodPost, pushRegex,
+		httpmock.NewStringResponder(http.StatusNoContent, ""))
+
+	client, err := New(t.Context(), Config{
+		Address:    DefaultEndpoint,
+		HttpClient: &http.Client{Transport: mockTransport},
+	})
+	if err != nil {
+		t.Fatalf("error creating client: %s", err)
+	}
+
+	// Test successful push
+	err = client.PushCounter(t.Context(), "test_gauge{job=\"test\"}", 42)
+	assert.NoError(t, err, "PushGauge should not return error on success")
+}
