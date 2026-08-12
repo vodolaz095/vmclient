@@ -25,24 +25,14 @@ type doParams struct {
 func (c *Client) do(ctx context.Context, operation string, params doParams) (resp *http.Response, err error) {
 	span := trace.SpanFromContext(ctx)
 	var endpoint string
-	var u *url.URL
+	u := c.u
 	switch operation {
 	case "ping":
 		// https://github.com/VictoriaMetrics/VictoriaMetrics/issues/3539#issuecomment-1366469760
-		endpoint, err = url.JoinPath(c.endpoint, "-", "healthy")
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-			span.RecordError(err)
-			return nil, err
-		}
+		u.Path = "-/healthy"
+		endpoint = u.String()
 	case "instant":
-		u, err = url.Parse(c.endpoint)
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-			span.RecordError(err)
-			return nil, fmt.Errorf("error parsing endpoint: %s", err)
-		}
-		u.Path += "prometheus/api/v1/query"
+		u.Path = "prometheus/api/v1/query"
 		args := url.Values{}
 		args.Set("query", params.query)
 		args.Set("time", strconv.FormatInt(params.when.Unix(), 10))
@@ -58,13 +48,7 @@ func (c *Client) do(ctx context.Context, operation string, params doParams) (res
 			attribute.String("step", params.step.String()),
 		)
 	case "range":
-		u, err = url.Parse(c.endpoint)
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-			span.RecordError(err)
-			return nil, fmt.Errorf("error parsing endpoint: %s", err)
-		}
-		u.Path += "prometheus/api/v1/query_range"
+		u.Path = "prometheus/api/v1/query_range"
 		args := url.Values{}
 		args.Set("query", params.query)
 		args.Set("start", strconv.FormatInt(params.start.Unix(), 10))

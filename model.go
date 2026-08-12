@@ -2,7 +2,7 @@ package vmclient
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -19,9 +19,7 @@ func labelsToString(labels map[string]string) string {
 		elems = append(elems, fmt.Sprintf("%s=%q", k, labels[k]))
 		i++
 	}
-	sort.Slice(elems, func(i, j int) bool {
-		return elems[i] < elems[j]
-	})
+	slices.Sort(elems)
 	return name + "{" + strings.Join(elems, ",") + "}"
 }
 

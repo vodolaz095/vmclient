@@ -308,46 +308,11 @@ func TestPushCounterWithHttpMock(t *testing.T) {
 	assert.NoError(t, err, "PushGauge should not return error on success")
 }
 
-func TestUrlParseErrorPing(t *testing.T) {
-	t.Skipf("need to think")
+func TestNewMalformed(t *testing.T) {
 	client, err := New(t.Context(), Config{
-		Address:  DefaultEndpoint,
+		Address:  "lol",
 		Insecure: true,
 	})
-	assert.NoError(t, err, "client should be created without error")
-
-	// Override endpoint with malformed domain for ping test using example#org format
-	client.endpoint = "http://example#org:8428:8428/-/healthy"
-
-	err = client.Ping(t.Context())
+	assert.Nil(t, client)
 	assert.Error(t, err, "error should be thrown for malformed domain")
-	assert.ErrorIs(t, err, fmt.Errorf("parse \"http://example#org:8428:8428\":"), "error message should indicate parse error")
-}
-
-func TestUrlParseErrorInstant(t *testing.T) {
-	client, err := New(t.Context(), Config{
-		Address:  DefaultEndpoint,
-		Insecure: true,
-	})
-	assert.NoError(t, err, "client should be created without error")
-
-	// Override endpoint with malformed domain for instant test using example#org format
-	client.endpoint = "http://example#org:8428:8428/prometheus/api/v1/query"
-	instants, err := client.Instant(t.Context(), `something{job="vmclient",unit="test"}`, time.Now(), DefaultStep)
-	assert.Error(t, err, "error should be thrown for malformed domain")
-	assert.Empty(t, instants, "instants should be empty for malformed domain")
-}
-
-func TestUrlParseErrorRange(t *testing.T) {
-	client, err := New(t.Context(), Config{
-		Address:  DefaultEndpoint,
-		Insecure: true,
-	})
-	assert.NoError(t, err, "client should be created without error")
-
-	// Override endpoint with malformed domain for range test using example#org format
-	client.endpoint = "http://example#org:8428:8428/prometheus/api/v1/query_range"
-	ranges, err := client.Range(t.Context(), `something{job="vmclient",unit="test"}`, time.Now(), time.Now(), DefaultStep)
-	assert.Error(t, err, "error should be thrown for malformed domain")
-	assert.Empty(t, ranges, "ranges should be empty for malformed domain")
 }

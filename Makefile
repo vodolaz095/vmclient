@@ -26,3 +26,6 @@ instant:
 
 range:
 	go run examples/range/main.go
+
+fix:
+	go fix ./...
