@@ -16,8 +16,6 @@ deps:
 test:
 	go test -v ./...
 
-include make/*.mk
-
 push:
 	go run examples/push/main.go
 
@@ -29,3 +27,5 @@ range:
 
 fix:
 	go fix ./...
+
+include make/*.mk
