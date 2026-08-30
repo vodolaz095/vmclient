@@ -3,7 +3,6 @@ vmclient
 
 [![Go](https://github.com/vodolaz095/vmclient/actions/workflows/go.yml/badge.svg)](https://github.com/vodolaz095/vmclient/actions/workflows/go.yml)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/vodolaz095/vmclient)](https://pkg.go.dev/github.com/vodolaz095/vmclient?tab=doc)
-[![Go Report Card](https://goreportcard.com/badge/github.com/vodolaz095/vmclient)](https://goreportcard.com/report/github.com/vodolaz095/vmclient)
 
 Simple HTTP client for Victoria Metrics.
 
